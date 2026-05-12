@@ -1,0 +1,33 @@
+name: ko-freebsd-build
+
+on:
+  push:
+    paths:
+      - 'ko/**'
+      - '.github/workflows/ko-freebsd.yml'
+  pull_request:
+    paths:
+      - 'ko/**'
+      - '.github/workflows/ko-freebsd.yml'
+
+jobs:
+  freebsd-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ['13.4', '14.3']
+        profile: ['release', 'debug']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ko on FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.release }}
+          usesh: true
+          run: |
+            set -eux
+            freebsd-version -kru || true
+            test -d /usr/src/sys || (bsdinstall distfetch && bsdinstall distextract)
+            make -C ko clean PROFILE=${{ matrix.profile }} SYSDIR=/usr/src/sys || true
+            make -C ko PROFILE=${{ matrix.profile }} SYSDIR=/usr/src/sys
